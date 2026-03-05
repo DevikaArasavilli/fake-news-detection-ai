@@ -1,0 +1,4 @@
+model/distilbert/model.safetensors
+model/lstm/fake_news_model.keras
+__pycache__/
+*.pyc
