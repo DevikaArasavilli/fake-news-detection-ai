@@ -1,28 +1,29 @@
 from transformers import pipeline
 
+# Load fake news detection model
 classifier = pipeline(
     "text-classification",
-    model="mrm8488/bert-tiny-finetuned-fake-news-detection"
+    model="hamzab/roberta-fake-news-classification",
+    tokenizer="hamzab/roberta-fake-news-classification"
 )
 
 def predict_news(text, model_type="bert"):
 
     result = classifier(text)[0]
 
-    label = result["label"]
+    label = result["label"].lower()
     score = result["score"]
 
-    # Correct label mapping
-    if label == "LABEL_0":
+    if "fake" in label:
         prediction = "FAKE NEWS"
+        risk = "High Risk"
     else:
         prediction = "REAL NEWS"
+        risk = "Low Risk"
 
     confidence = round(score * 100, 2)
 
     reliability = "High" if confidence > 80 else "Medium" if confidence > 60 else "Low"
-
-    risk = "High Risk" if prediction == "FAKE NEWS" else "Low Risk"
 
     sentiment = "Neutral"
 
