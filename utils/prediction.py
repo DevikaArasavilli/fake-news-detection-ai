@@ -1,47 +1,29 @@
-from transformers import DistilBertTokenizer, DistilBertForSequenceClassification
-import torch
+from transformers import pipeline
 
-# Load model from HuggingFace
-MODEL_NAME = "distilbert-base-uncased"
-
-tokenizer = DistilBertTokenizer.from_pretrained(MODEL_NAME)
-model = DistilBertForSequenceClassification.from_pretrained(MODEL_NAME)
-
-model.eval()
-
+classifier = pipeline(
+    "text-classification",
+    model="mrm8488/bert-tiny-finetuned-fake-news-detection"
+)
 
 def predict_news(text, model_type="bert"):
 
-    inputs = tokenizer(
-        text,
-        return_tensors="pt",
-        truncation=True,
-        padding=True,
-        max_length=512
-    )
+    result = classifier(text)[0]
 
-    with torch.no_grad():
-        outputs = model(**inputs)
+    label = result["label"]
+    score = result["score"]
 
-    probs = torch.softmax(outputs.logits, dim=1)
-
-    fake_prob = probs[0][0].item()
-
-    if fake_prob > 0.5:
-        prediction = "FAKE NEWS"
-    else:
+    if label == "LABEL_1":
         prediction = "REAL NEWS"
+    else:
+        prediction = "FAKE NEWS"
 
-    confidence = round(abs(fake_prob - 0.5) * 200, 2)
+    confidence = round(score * 100, 2)
 
-    reliability = "High" if confidence > 80 else "Medium" if confidence > 60 else "Low"
-
-    risk = "High Risk" if prediction == "FAKE NEWS" else "Low Risk"
+    reliability = "High" if confidence > 80 else "Medium"
+    risk = "Low Risk" if prediction == "REAL NEWS" else "High Risk"
 
     sentiment = "Neutral"
-
     keywords = text.split()[:5]
-
     short_flag = len(text.split()) < 20
 
     return prediction, confidence, reliability, risk, sentiment, keywords, short_flag
