@@ -12,18 +12,22 @@ def predict_news(text, model_type="bert"):
     label = result["label"]
     score = result["score"]
 
-    if label == "LABEL_1":
-        prediction = "REAL NEWS"
-    else:
+    # Correct label mapping
+    if label == "LABEL_0":
         prediction = "FAKE NEWS"
+    else:
+        prediction = "REAL NEWS"
 
     confidence = round(score * 100, 2)
 
-    reliability = "High" if confidence > 80 else "Medium"
-    risk = "Low Risk" if prediction == "REAL NEWS" else "High Risk"
+    reliability = "High" if confidence > 80 else "Medium" if confidence > 60 else "Low"
+
+    risk = "High Risk" if prediction == "FAKE NEWS" else "Low Risk"
 
     sentiment = "Neutral"
+
     keywords = text.split()[:5]
+
     short_flag = len(text.split()) < 20
 
     return prediction, confidence, reliability, risk, sentiment, keywords, short_flag
