@@ -1,14 +1,11 @@
-from transformers import DistilBertForSequenceClassification, DistilBertTokenizer
+from transformers import DistilBertTokenizer, DistilBertForSequenceClassification
 import torch
 
-# =============================
-# Load DistilBERT
-# =============================
+# Load model from HuggingFace
+MODEL_NAME = "distilbert-base-uncased"
 
-MODEL_PATH = "model/distilbert"
-
-tokenizer = DistilBertTokenizer.from_pretrained(MODEL_PATH)
-model = DistilBertForSequenceClassification.from_pretrained(MODEL_PATH)
+tokenizer = DistilBertTokenizer.from_pretrained(MODEL_NAME)
+model = DistilBertForSequenceClassification.from_pretrained(MODEL_NAME)
 
 model.eval()
 
