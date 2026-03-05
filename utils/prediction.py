@@ -1,83 +1,56 @@
-import torch
-import torch.nn.functional as F
-import numpy as np
-import pickle
-
 from transformers import DistilBertForSequenceClassification, DistilBertTokenizer
 from tensorflow.keras.models import load_model
 from tensorflow.keras.preprocessing.sequence import pad_sequences
-
-from utils.preprocessing import clean_text, extract_keywords
-
-
-# =============================
-# Constants
-# =============================
-MAX_LEN = 300
-
+import torch
+import pickle
+import numpy as np
+from utils.preprocessing import clean_text
 
 # =============================
 # Load LSTM Model
 # =============================
-lstm_model = load_model("model/lstm/fake_news_model.keras")
 
-with open("model/lstm/tokenizer.pkl", "rb") as f:
+LSTM_MODEL_PATH = "model/lstm/fake_news_model.keras"
+TOKENIZER_PATH = "model/lstm/tokenizer.pkl"
+
+lstm_model = load_model(LSTM_MODEL_PATH)
+
+with open(TOKENIZER_PATH, "rb") as f:
     lstm_tokenizer = pickle.load(f)
 
 
 # =============================
 # Load DistilBERT Model
 # =============================
-bert_model = DistilBertForSequenceClassification.from_pretrained("model/distilbert")
-bert_tokenizer = DistilBertTokenizer.from_pretrained("model/distilbert")
+
+BERT_PATH = "model/distilbert"
+
+bert_tokenizer = DistilBertTokenizer.from_pretrained(BERT_PATH)
+bert_model = DistilBertForSequenceClassification.from_pretrained(BERT_PATH)
 
 bert_model.eval()
 
 
 # =============================
-# Simple Sentiment Detection
-# =============================
-def simple_sentiment(text):
-
-    positive_words = ["good", "growth", "success", "positive", "benefit"]
-    negative_words = ["fake", "fraud", "scam", "corrupt", "crime"]
-
-    text = text.lower()
-
-    pos = sum(word in text for word in positive_words)
-    neg = sum(word in text for word in negative_words)
-
-    if pos > neg:
-        return "Positive"
-    elif neg > pos:
-        return "Negative"
-    else:
-        return "Neutral"
-
-
-# =============================
 # LSTM Prediction
 # =============================
+
 def predict_lstm(text):
 
-    cleaned = clean_text(text)
+    text = clean_text(text)
 
-    seq = lstm_tokenizer.texts_to_sequences([cleaned])
-
-    padded = pad_sequences(seq, maxlen=MAX_LEN, padding="post")
+    seq = lstm_tokenizer.texts_to_sequences([text])
+    padded = pad_sequences(seq, maxlen=300)
 
     prob = lstm_model.predict(padded)[0][0]
 
-    prediction = "REAL NEWS" if prob > 0.5 else "FAKE NEWS"
-
-    confidence = prob if prob > 0.5 else 1 - prob
-
-    return prediction, confidence
+    return prob
 
 
 # =============================
 # DistilBERT Prediction
 # =============================
+
 def predict_bert(text):
 
     inputs = bert_tokenizer(
@@ -85,83 +58,64 @@ def predict_bert(text):
         return_tensors="pt",
         truncation=True,
         padding=True,
-        max_length=256
+        max_length=512
     )
 
     with torch.no_grad():
         outputs = bert_model(**inputs)
 
-    probs = F.softmax(outputs.logits, dim=1)
+    probs = torch.softmax(outputs.logits, dim=1)
 
-    confidence = torch.max(probs).item() * 0.97  # reduce overconfidence
+    fake_prob = probs[0][0].item()
 
-    prediction = torch.argmax(probs).item()
-
-    label = "REAL NEWS" if prediction == 1 else "FAKE NEWS"
-
-    return label, confidence
+    return fake_prob
 
 
 # =============================
-# Ensemble Prediction
+# Final Prediction Function
 # =============================
-def predict_ensemble(text):
 
-    lstm_pred, lstm_conf = predict_lstm(text)
-    bert_pred, bert_conf = predict_bert(text)
+def predict_news(text, model_type="ensemble"):
 
-    lstm_score = lstm_conf if lstm_pred == "REAL NEWS" else (1 - lstm_conf)
-    bert_score = bert_conf if bert_pred == "REAL NEWS" else (1 - bert_conf)
-
-    final_score = (lstm_score + bert_score) / 2
-
-    if final_score > 0.5:
-        prediction = "REAL NEWS"
-    else:
-        prediction = "FAKE NEWS"
-
-    confidence = final_score if prediction == "REAL NEWS" else (1 - final_score)
-
-    return prediction, confidence
-
-
-# =============================
-# Main Prediction Pipeline
-# =============================
-def predict_news(text, model_type="bert"):
-
-    short_flag = len(text.split()) < 20
+    lstm_prob = predict_lstm(text)
+    bert_prob = predict_bert(text)
 
     if model_type == "lstm":
-        prediction, confidence = predict_lstm(text)
+        prob = lstm_prob
 
     elif model_type == "bert":
-        prediction, confidence = predict_bert(text)
+        prob = bert_prob
 
     else:
-        prediction, confidence = predict_ensemble(text)
+        prob = (lstm_prob + bert_prob) / 2
 
-    confidence_percent = round(confidence * 100, 2)
 
-    if confidence_percent > 85:
+    # prediction
+    if prob > 0.5:
+        label = "FAKE NEWS"
+    else:
+        label = "REAL NEWS"
+
+    confidence = round(abs(prob - 0.5) * 200, 2)
+
+    # reliability
+    if confidence > 80:
         reliability = "High"
-    elif confidence_percent > 65:
+    elif confidence > 60:
         reliability = "Medium"
     else:
         reliability = "Low"
 
-    risk = "High Risk" if prediction == "FAKE NEWS" else "Low Risk"
+    # risk
+    if label == "FAKE NEWS":
+        risk = "High Risk"
+    else:
+        risk = "Low Risk"
 
-    sentiment = simple_sentiment(text)
+    sentiment = "Neutral"
 
-    keywords = extract_keywords(text)
+    keywords = text.split()[:5]
 
-    return (
-        prediction,
-        confidence_percent,
-        reliability,
-        risk,
-        sentiment,
-        keywords,
-        short_flag
-    )
+    short_flag = len(text.split()) < 20
+
+    return label, confidence, reliability, risk, sentiment, keywords, short_flag

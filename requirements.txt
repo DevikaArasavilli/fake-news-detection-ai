@@ -1,8 +1,9 @@
-streamlit
-tensorflow
-torch
-transformers
-pandas
-numpy
-scikit-learn
-nltk
+streamlit==1.36.0
+tensorflow==2.15.0
+torch==2.2.2
+transformers==4.41.2
+pandas==2.2.2
+numpy==1.26.4
+scikit-learn==1.5.1
+nltk==3.8.1
+matplotlib==3.8.4

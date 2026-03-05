@@ -3,13 +3,23 @@ import nltk
 from nltk.corpus import stopwords
 from nltk.stem import PorterStemmer
 
-nltk.download("stopwords", quiet=True)
+# download stopwords safely
+try:
+    stop_words = set(stopwords.words("english"))
+except:
+    nltk.download("stopwords")
+    stop_words = set(stopwords.words("english"))
 
 stemmer = PorterStemmer()
-stop_words = set(stopwords.words("english"))
 
+
+# =============================
+# Text Cleaning
+# =============================
 def clean_text(text):
+
     text = text.lower()
+
     text = re.sub(r"[^a-z\s]", "", text)
 
     words = text.split()
@@ -23,8 +33,13 @@ def clean_text(text):
     return " ".join(words)
 
 
+# =============================
+# Keyword Extraction
+# =============================
 def extract_keywords(text, n=5):
-    words = text.split()
+
+    words = text.lower().split()
+
     freq = {}
 
     for word in words:
