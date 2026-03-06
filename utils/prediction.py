@@ -7,7 +7,8 @@ from utils.explainability import get_sentiment, extract_keywords
 def load_model():
     classifier = pipeline(
         "text-classification",
-        model="mrm8488/bert-tiny-finetuned-fake-news-detection"
+        model="hamzab/roberta-fake-news-classification",
+        tokenizer="hamzab/roberta-fake-news-classification"
     )
     return classifier
 
@@ -32,12 +33,7 @@ def predict_news(text, model_type="distilbert"):
 
     confidence = round(score * 100, 2)
 
-    if confidence > 80:
-        reliability = "High"
-    elif confidence > 60:
-        reliability = "Medium"
-    else:
-        reliability = "Low"
+    reliability = "High" if confidence > 80 else "Medium" if confidence > 60 else "Low"
 
     sentiment = get_sentiment(text)
     keywords = extract_keywords(text)
