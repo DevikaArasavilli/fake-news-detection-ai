@@ -122,7 +122,10 @@ if st.button("Analyze News"):
         # Confidence Bar
         # =============================
         st.write("### Confidence Level")
-        st.progress(confidence / 100)
+
+        # FIXED PROGRESS BAR
+        progress_value = min(max(float(confidence) / 100, 0), 1)
+        st.progress(progress_value)
 
         # =============================
         # Metrics
@@ -140,6 +143,7 @@ if st.button("Analyze News"):
         # =============================
         st.write("### Sentiment Analysis")
         st.info(sentiment)
+
         # =============================
         # Keywords
         # =============================
@@ -166,7 +170,6 @@ if st.button("Analyze News"):
                     unsafe_allow_html=True
                 )
 
-        # space after keywords
         st.markdown("<br>", unsafe_allow_html=True)
 
         # =============================
