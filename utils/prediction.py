@@ -42,8 +42,12 @@ def predict_news(text, model_type="lstm"):
     # Model prediction
     prob = float(model.predict(seq)[0][0])
 
-    # Classification
-    if prob > 0.5:
+    # ==============================
+    # Improved classification threshold
+    # ==============================
+    threshold = 0.65
+
+    if prob >= threshold:
         prediction = "REAL NEWS"
         score = prob
         risk = "Low Risk"
