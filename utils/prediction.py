@@ -1,6 +1,6 @@
 from transformers import pipeline
 
-# Load fake news detection model
+# Load pretrained fake news detection model
 classifier = pipeline(
     "text-classification",
     model="hamzab/roberta-fake-news-classification",
