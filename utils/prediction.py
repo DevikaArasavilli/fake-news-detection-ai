@@ -1,57 +1,35 @@
-import streamlit as st
 from transformers import pipeline
-import os
+import streamlit as st
+from utils.explainability import get_sentiment, extract_keywords
 
 
-# ==============================
-# Load Local DistilBERT Model
-# ==============================
 @st.cache_resource
 def load_model():
-
-    model_path = os.path.join("model", "distilbert")
-
     classifier = pipeline(
         "text-classification",
-        model=model_path,
-        tokenizer=model_path
+        model="mrm8488/bert-tiny-finetuned-fake-news-detection"
     )
-
     return classifier
 
 
-# ==============================
-# Fake News Prediction
-# ==============================
 def predict_news(text, model_type="distilbert"):
 
     classifier = load_model()
 
-    # Limit input length
     text = text[:800]
 
     result = classifier(text)[0]
 
-    label = result["label"]
+    label = result["label"].lower()
     score = result["score"]
 
-    # ------------------------------
-    # Label Mapping
-    # ------------------------------
-    # Most fake-news models use:
-    # LABEL_0 = FAKE
-    # LABEL_1 = REAL
-
-    if label == "LABEL_0":
+    if "fake" in label:
         prediction = "FAKE NEWS"
         risk = "High Risk"
     else:
         prediction = "REAL NEWS"
         risk = "Low Risk"
 
-    # ------------------------------
-    # Confidence Score
-    # ------------------------------
     confidence = round(score * 100, 2)
 
     if confidence > 80:
@@ -61,31 +39,9 @@ def predict_news(text, model_type="distilbert"):
     else:
         reliability = "Low"
 
-    # ------------------------------
-    # Sentiment (simple)
-    # ------------------------------
-    sentiment = "Neutral"
+    sentiment = get_sentiment(text)
+    keywords = extract_keywords(text)
 
-    positive_words = ["growth", "success", "development", "benefit"]
-    negative_words = ["crisis", "attack", "fraud", "corruption"]
-
-    lower_text = text.lower()
-
-    if any(word in lower_text for word in positive_words):
-        sentiment = "Positive"
-
-    if any(word in lower_text for word in negative_words):
-        sentiment = "Negative"
-
-    # ------------------------------
-    # Keyword Extraction
-    # ------------------------------
-    words = text.split()
-    keywords = words[:5]
-
-    # ------------------------------
-    # Short Text Flag
-    # ------------------------------
-    short_flag = len(words) < 20
+    short_flag = len(text.split()) < 20
 
     return prediction, confidence, reliability, risk, sentiment, keywords, short_flag
