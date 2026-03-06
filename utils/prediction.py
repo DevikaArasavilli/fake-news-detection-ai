@@ -1,56 +1,55 @@
-from transformers import pipeline
+import os
+import pickle
+import numpy as np
 import streamlit as st
+from tensorflow.keras.models import load_model
+from tensorflow.keras.preprocessing.sequence import pad_sequences
+from utils.preprocessing import clean_text
 from utils.explainability import get_sentiment, extract_keywords
 
 
 # ==============================
-# Load Model (cached)
+# Load LSTM model
 # ==============================
 @st.cache_resource
-def load_model():
+def load_lstm():
 
-    classifier = pipeline(
-        "text-classification",
-        model="hamzab/roberta-fake-news-classification",
-        tokenizer="hamzab/roberta-fake-news-classification"
-    )
+    model_path = os.path.join("model", "lstm", "fake_news_model.keras")
+    tokenizer_path = os.path.join("model", "lstm", "tokenizer.pkl")
 
-    return classifier
+    model = load_model(model_path)
+
+    with open(tokenizer_path, "rb") as f:
+        tokenizer = pickle.load(f)
+
+    return model, tokenizer
 
 
 # ==============================
-# Prediction Function
+# Prediction function
 # ==============================
-def predict_news(text, model_type="distilbert"):
+def predict_news(text, model_type="lstm"):
 
-    classifier = load_model()
+    model, tokenizer = load_lstm()
 
-    # limit very long text
-    text = text[:800]
+    cleaned = clean_text(text)
 
-    result = classifier(text)[0]
+    seq = tokenizer.texts_to_sequences([cleaned])
+    seq = pad_sequences(seq, maxlen=300)
 
-    label = result["label"]
-    score = result["score"]
+    prob = model.predict(seq)[0][0]
 
-    # ==============================
-    # Label Mapping
-    # ==============================
-    if label in ["FAKE", "LABEL_0"]:
-        prediction = "FAKE NEWS"
-        risk = "High Risk"
-    else:
+    if prob > 0.5:
         prediction = "REAL NEWS"
+        score = prob
         risk = "Low Risk"
+    else:
+        prediction = "FAKE NEWS"
+        score = 1 - prob
+        risk = "High Risk"
 
-    # ==============================
-    # Confidence (FIXED ROUNDING)
-    # ==============================
     confidence = round(score * 100, 2)
 
-    # ==============================
-    # Reliability Level
-    # ==============================
     if confidence > 80:
         reliability = "High"
     elif confidence > 60:
@@ -58,13 +57,9 @@ def predict_news(text, model_type="distilbert"):
     else:
         reliability = "Low"
 
-    # ==============================
-    # Sentiment + Keywords
-    # ==============================
     sentiment = get_sentiment(text)
     keywords = extract_keywords(text)
 
-    # short text warning
     short_flag = len(text.split()) < 20
 
     return prediction, confidence, reliability, risk, sentiment, keywords, short_flag
