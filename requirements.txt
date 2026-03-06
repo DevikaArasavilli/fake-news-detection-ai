@@ -1,9 +1,9 @@
 streamlit
 transformers
 torch
+tensorflow
 pandas
-numpy
 scikit-learn
 nltk
 matplotlib
-sentencepiece
+seaborn
