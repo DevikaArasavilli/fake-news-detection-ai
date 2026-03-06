@@ -21,10 +21,11 @@ def predict_news(text, model_type="distilbert"):
 
     result = classifier(text)[0]
 
-    label = result["label"].lower()
+    label = result["label"]
     score = result["score"]
 
-    if "fake" in label:
+    # FIXED label mapping
+    if label in ["FAKE", "LABEL_0"]:
         prediction = "FAKE NEWS"
         risk = "High Risk"
     else:
@@ -33,7 +34,12 @@ def predict_news(text, model_type="distilbert"):
 
     confidence = round(score * 100, 2)
 
-    reliability = "High" if confidence > 80 else "Medium" if confidence > 60 else "Low"
+    if confidence > 80:
+        reliability = "High"
+    elif confidence > 60:
+        reliability = "Medium"
+    else:
+        reliability = "Low"
 
     sentiment = get_sentiment(text)
     keywords = extract_keywords(text)
