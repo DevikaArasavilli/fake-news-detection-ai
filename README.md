@@ -1,5 +1,3 @@
-.
-
 🧠 AI Fake News Detection Platform
 
 An AI-powered system that detects whether a news article is Fake or Real using advanced Natural Language Processing models.
@@ -143,3 +141,4 @@ Devika Arasavilli
 B.Tech – Artificial Intelligence & Data Science
 
 ⭐ If you like this project, give it a star on GitHub.
+
